@@ -169,6 +169,7 @@ class PostgreSQLConnectionHandler
           case ServerMessage.ParseComplete => {
           }
           case ServerMessage.ReadyForQuery => {
+
             connectionDelegate.onReadyForQuery()
           }
           case ServerMessage.RowDescription => {

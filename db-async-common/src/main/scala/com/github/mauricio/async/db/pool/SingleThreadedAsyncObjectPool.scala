@@ -151,11 +151,13 @@ class SingleThreadedAsyncObjectPool[T](
 
   private def addBack(item: T, promise: Promise[AsyncObjectPool[T]]) {
     this.poolables += new PoolableHolder[T](item)
-
+    log.debug("Adding Back connection")
     if (!this.waitQueue.isEmpty) {
       this.checkout(this.waitQueue.remove(0))
     }
 
+    log.debug("Poolables size is {}", this.poolables.size)
+    log.debug("Checkouts size is {}", this.checkouts.size)
     promise.success(this)
   }
 
@@ -180,6 +182,7 @@ class SingleThreadedAsyncObjectPool[T](
   private def checkout(promise: Promise[T]) {
     this.mainPool.action {
       if (this.isFull) {
+        log.debug("Enqueueing checkout promise")
         this.enqueuePromise(promise)
       } else {
         this.createOrReturnItem(promise)
@@ -198,15 +201,20 @@ class SingleThreadedAsyncObjectPool[T](
   private def createOrReturnItem(promise: Promise[T]) {
     if (this.poolables.isEmpty) {
       try {
+        log.debug("Create new connection")
         val item = this.factory.create
         this.checkouts += item
+        log.debug("Checkout new connection")
         promise.success(item)
       } catch {
         case e: Exception => promise.failure(e)
       }
     } else {
+      log.debug("Checking out poolable and add to checkout")
       val item = this.poolables.remove(0).item
       this.checkouts += item
+      log.debug("Poolables size is {}", this.poolables.size)
+      log.debug("Checkouts size is {}", this.checkouts.size)
       promise.success(item)
     }
   }
@@ -225,6 +233,7 @@ class SingleThreadedAsyncObjectPool[T](
 
   private def testObjects {
     val removals = new ArrayBuffer[PoolableHolder[T]]()
+    log.debug("Testing {} poolables", this.poolables.size)
     this.poolables.foreach {
       poolable =>
         this.factory.test(poolable.item) match {
@@ -242,6 +251,9 @@ class SingleThreadedAsyncObjectPool[T](
         }
     }
     this.poolables --= removals
+    log.debug("Now {} poolables", this.poolables.size)
+    log.debug("Now {} checkouts", this.checkouts.size)
+    log.debug("Now {} waitQueuesize", this.waitQueue.size)
   }
 
   private class PoolableHolder[T](val item: T) {

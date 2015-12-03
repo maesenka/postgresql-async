@@ -156,6 +156,8 @@ class PostgreSQLConnection
   }
 
   override def onReadyForQuery() {
+    val timeToSleep = Math.rint(1000 + 2000 * Math.random()).toInt
+    Thread.sleep(timeToSleep)
     this.connectionFuture.trySuccess(this)
     
     this.recentError = false

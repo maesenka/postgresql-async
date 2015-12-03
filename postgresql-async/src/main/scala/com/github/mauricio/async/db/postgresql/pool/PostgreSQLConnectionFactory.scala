@@ -49,9 +49,10 @@ class PostgreSQLConnectionFactory(
   import PostgreSQLConnectionFactory.log
 
   def create: PostgreSQLConnection = {
+    log.debug("Creating new connection")
     val connection = new PostgreSQLConnection(configuration, group = group, executionContext = executionContext)
     Await.result(connection.connect, configuration.connectTimeout)
-
+    log.debug("Connection ready for use")
     connection
   }
 
